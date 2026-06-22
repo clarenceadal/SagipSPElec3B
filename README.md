@@ -116,20 +116,4 @@ Student Login
 
 ---
 
-## Developer
-
-Clarence Anthony Adal  
-Bachelor of Science in Information Technology (BSIT)  
-University of San Jose-Recoletos
-
----
-
-## Project Status
-
-Capstone Project (In Development)
-
----
-
-## License
-
 This project is intended for academic and educational purposes only.
