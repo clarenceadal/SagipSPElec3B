@@ -1,0 +1,38 @@
+@startuml
+start
+
+:Student logs in;
+:Student dashboard opens;
+
+if (Student needs emergency help?) then (Yes)
+  :Student presses SOS button;
+  :SOS screen opens;
+  :Student selects emergency type;
+  :System captures current location;
+  :Student adds optional details;
+  :Student submits SOS report;
+
+  :System records student info;
+  :System records timestamp;
+  :System stores emergency report;
+  :System sends alert to SSD/Admin;
+
+  :Admin receives incident alert;
+  :Admin views incident details;
+  :Admin reviews student information, emergency type, location, and timestamp;
+
+  if (Incident is valid?) then (Yes)
+    :Admin updates status to Acknowledged;
+    :Admin updates status to Responding;
+    :Admin coordinates response;
+    :Admin updates status to Resolved;
+  else (No)
+    :Admin marks incident as Invalid / Cancelled;
+  endif
+
+else (No)
+  :Student stays on dashboard;
+endif
+
+stop
+@enduml

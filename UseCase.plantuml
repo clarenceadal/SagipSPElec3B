@@ -1,0 +1,40 @@
+@startuml
+left to right direction
+
+actor Student
+actor "SSD/Admin" as Admin
+
+rectangle "SAGIP Emergency Response System" {
+  usecase "Login" as UC1
+  usecase "View Student Dashboard" as UC2
+  usecase "Submit SOS Report" as UC3
+  usecase "Select Emergency Type" as UC4
+  usecase "Share Current Location" as UC5
+  usecase "View Incident History" as UC6
+  usecase "View Profile" as UC7
+
+  usecase "Admin Login" as UC8
+  usecase "View SSD Dashboard" as UC9
+  usecase "View Incident Details" as UC10
+  usecase "Update Incident Status" as UC11
+  usecase "Send Broadcast" as UC12
+  usecase "View Recent Incidents" as UC13
+}
+
+Student --> UC1
+Student --> UC2
+Student --> UC3
+Student --> UC6
+Student --> UC7
+
+UC3 --> UC4 : includes
+UC3 --> UC5 : includes
+
+Admin --> UC8
+Admin --> UC9
+Admin --> UC10
+Admin --> UC11
+Admin --> UC12
+Admin --> UC13
+
+@enduml

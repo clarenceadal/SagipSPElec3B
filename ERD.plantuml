@@ -1,0 +1,71 @@
+@startuml
+
+entity "students" as students {
+  * student_id : varchar <<PK>>
+  --
+  full_name : varchar
+  course : varchar
+  year_level : varchar
+  contact_number : varchar
+  email : varchar
+  password_hash : varchar
+  created_at : datetime
+}
+
+entity "admins" as admins {
+  * admin_id : int <<PK>>
+  --
+  username : varchar
+  full_name : varchar
+  role : varchar
+  password_hash : varchar
+  created_at : datetime
+}
+
+entity "emergency_types" as emergency_types {
+  * emergency_type_id : int <<PK>>
+  --
+  type_name : varchar
+  description : text
+}
+
+entity "incidents" as incidents {
+  * incident_id : int <<PK>>
+  --
+  student_id : varchar <<FK>>
+  emergency_type_id : int <<FK>>
+  location_address : text
+  latitude : decimal
+  longitude : decimal
+  additional_details : text
+  status : varchar
+  timestamp : datetime
+  resolved_at : datetime
+}
+
+entity "incident_status_logs" as status_logs {
+  * status_log_id : int <<PK>>
+  --
+  incident_id : int <<FK>>
+  admin_id : int <<FK>>
+  status : varchar
+  remarks : text
+  updated_at : datetime
+}
+
+entity "broadcasts" as broadcasts {
+  * broadcast_id : int <<PK>>
+  --
+  admin_id : int <<FK>>
+  title : varchar
+  message : text
+  created_at : datetime
+}
+
+students ||--o{ incidents : submits
+emergency_types ||--o{ incidents : classifies
+incidents ||--o{ status_logs : has
+admins ||--o{ status_logs : updates
+admins ||--o{ broadcasts : creates
+
+@enduml

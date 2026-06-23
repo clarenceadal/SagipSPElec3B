@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SAGIP Demo and MVVM Guide</title>
+  <style>
+    @page { size: A4; margin: 18mm; }
+    body {
+      font-family: Arial, sans-serif;
+      color: #202520;
+      font-size: 11pt;
+      line-height: 1.45;
+    }
+    h1 { color: #006b2d; font-size: 25pt; margin: 0 0 4px; }
+    h2 {
+      color: #006b2d;
+      font-size: 16pt;
+      border-bottom: 2px solid #f2b705;
+      padding-bottom: 4px;
+      margin-top: 24px;
+    }
+    h3 { color: #174f2e; font-size: 12.5pt; margin-bottom: 5px; }
+    .subtitle { color: #626862; margin-bottom: 22px; }
+    .cue {
+      background: #f3f9f4;
+      border-left: 4px solid #006b2d;
+      padding: 10px 12px;
+      margin: 8px 0 14px;
+    }
+    .cue strong { color: #006b2d; }
+    code {
+      font-family: Consolas, monospace;
+      background: #f1f3f1;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    pre {
+      font-family: Consolas, monospace;
+      background: #f1f3f1;
+      border: 1px solid #d9ddd9;
+      padding: 10px;
+      white-space: pre-wrap;
+      border-radius: 5px;
+    }
+    ul, ol { padding-left: 22px; }
+    li { margin: 4px 0; }
+    .file { font-family: Consolas, monospace; font-size: 9.5pt; }
+    .page-break { page-break-before: always; }
+    .flow {
+      text-align: center;
+      font-family: Consolas, monospace;
+      font-weight: bold;
+      line-height: 1.8;
+    }
+    footer { color: #747a74; font-size: 9pt; margin-top: 28px; }
+  </style>
+</head>
+<body>
+  <h1>SAGIP</h1>
+  <div class="subtitle">Demo Script and MVVM Architecture Guide</div>
+
+  <h2>1. Starting the Demonstration</h2>
+  <p>Run the Flutter application in Chrome:</p>
+  <pre>flutter run -d chrome --web-port 3000</pre>
+
+  <div class="cue">
+    <strong>Speaking cue:</strong><br>
+    “SAGIP is a campus emergency response and incident management platform for
+    USJ-R. It allows students to register, sign in, view their dashboard, and
+    submit emergency alerts to the Safety and Security Department.”
+  </div>
+
+  <h2>2. Features Accomplished So Far</h2>
+  <ol>
+    <li>Supabase database configuration and Flutter connection</li>
+    <li>Student and SSD authentication interface</li>
+    <li>Student registration</li>
+    <li>Forgot-password and reset-password flow</li>
+    <li>Session management and role-based routing</li>
+    <li>Student dashboard</li>
+    <li>Functional SOS reporting</li>
+  </ol>
+
+  <h2>3. Suggested Demo Flow</h2>
+
+  <h3>A. Student Registration</h3>
+  <p>Show the following:</p>
+  <ul>
+    <li>Student ID only accepts digits.</li>
+    <li>Last name, first name, and optional middle initial are separate.</li>
+    <li>Birthday is selected through a calendar.</li>
+    <li>Department selection filters the available courses.</li>
+    <li>Contact number only accepts digits.</li>
+    <li>Student email must end in <code>@usjr.edu.ph</code>.</li>
+    <li>Password and confirmation are validated.</li>
+  </ul>
+
+  <div class="cue">
+    <strong>Speaking cue:</strong><br>
+    “The registration form validates student information before creating an
+    account. Department and course use dependent dropdowns, so only courses
+    belonging to the selected department are displayed.”
+  </div>
+
+  <h3>B. Login and Session Management</h3>
+  <p>Sign in using a registered student account.</p>
+
+  <div class="cue">
+    <strong>Speaking cue:</strong><br>
+    “After login, Supabase creates a session. The application reads the
+    authenticated user and their role. A student is routed to the Student
+    Dashboard, while an SSD administrator is routed to the SSD interface.”
+  </div>
+
+  <h3>C. Student Dashboard</h3>
+  <p>Show:</p>
+  <ul>
+    <li>Welcome header containing the student’s name</li>
+    <li>Announcements card</li>
+    <li>Quick Actions card</li>
+    <li>Incident History shortcut</li>
+    <li>Bottom navigation for Home, History, SOS, and Profile</li>
+    <li>Sign-out option</li>
+  </ul>
+
+  <div class="cue">
+    <strong>Speaking cue:</strong><br>
+    “The dashboard follows the project wireframe. Some destinations remain
+    placeholders because they belong to separate Kanban tasks, but the
+    navigation foundation is already functional.”
+  </div>
+
+  <h3>D. SOS Reporting</h3>
+  <p>Open SOS from the Quick Actions card or the central SOS button.</p>
+  <ul>
+    <li>Select an emergency type loaded from Supabase.</li>
+    <li>Enter optional incident details.</li>
+    <li>Press SEND SOS.</li>
+    <li>Show the confirmation dialog.</li>
+    <li>Confirm submission.</li>
+    <li>Show the success message.</li>
+  </ul>
+
+  <div class="cue">
+    <strong>Speaking cue:</strong><br>
+    “The selected emergency type, optional details, student identity, pending
+    status, priority, and submission timestamp are saved as an incident in
+    Supabase. GPS coordinates will be connected under the separate GPS module.”
+  </div>
+
+  <div class="page-break"></div>
+
+  <h2>4. Simple MVVM Explanation</h2>
+  <div class="cue">
+    <strong>Main explanation:</strong><br>
+    “We used MVVM to separate the interface, application state, and data.
+    Views display screens, ViewModels handle screen logic and state, Models
+    represent data, and Services communicate with Supabase.”
+  </div>
+
+  <h3>Model</h3>
+  <p>Models describe the data used by the application.</p>
+  <ul>
+    <li class="file">lib/features/auth/models/app_user.dart</li>
+    <li class="file">lib/features/auth/models/student_registration.dart</li>
+    <li class="file">lib/features/sos/models/emergency_type.dart</li>
+    <li class="file">lib/features/sos/models/incident_submission.dart</li>
+  </ul>
+  <pre>class EmergencyType {
+  final String id;
+  final String name;
+}</pre>
+  <div class="cue">
+    <strong>Speaking cue:</strong><br>
+    “EmergencyType is a Model. It represents an emergency category retrieved
+    from the database.”
+  </div>
+
+  <h3>View</h3>
+  <p>Views contain the visible Flutter widgets and collect user input.</p>
+  <ul>
+    <li class="file">lib/features/auth/views/registration_view.dart</li>
+    <li class="file">lib/features/dashboard/views/student_dashboard_view.dart</li>
+    <li class="file">lib/features/sos/views/sos_view.dart</li>
+  </ul>
+  <div class="cue">
+    <strong>Speaking cue:</strong><br>
+    “The Views contain forms, buttons, dropdowns, cards, and navigation.
+    They do not directly query or insert records into Supabase.”
+  </div>
+
+  <h3>ViewModel</h3>
+  <p>ViewModels store screen state and handle actions requested by the View.</p>
+  <ul>
+    <li class="file">lib/features/auth/viewmodels/registration_view_model.dart</li>
+    <li class="file">lib/features/auth/viewmodels/session_view_model.dart</li>
+    <li class="file">lib/features/dashboard/viewmodels/student_dashboard_view_model.dart</li>
+    <li class="file">lib/features/sos/viewmodels/sos_view_model.dart</li>
+  </ul>
+  <pre>void selectTab(StudentDashboardTab tab) {
+  _selectedTab = tab;
+  notifyListeners();
+}</pre>
+  <div class="cue">
+    <strong>Speaking cue:</strong><br>
+    “The Student Dashboard ViewModel stores the selected tab. When the value
+    changes, notifyListeners tells the View to redraw.”
+  </div>
+
+  <p>The SOS ViewModel contains:</p>
+  <pre>Future&lt;bool&gt; submit(String details) async</pre>
+  <div class="cue">
+    <strong>Speaking cue:</strong><br>
+    “The SOS ViewModel validates the selected emergency category, manages
+    loading and error states, creates the incident submission, and asks the
+    service to save it.”
+  </div>
+
+  <h3>Service / Data Layer</h3>
+  <p>Services are responsible for communication with Supabase.</p>
+  <ul>
+    <li class="file">lib/features/auth/services/supabase_auth_service.dart</li>
+    <li class="file">lib/features/sos/services/supabase_incident_service.dart</li>
+  </ul>
+  <pre>Future&lt;void&gt; submitIncident(
+  IncidentSubmission submission,
+) async</pre>
+  <div class="cue">
+    <strong>Speaking cue:</strong><br>
+    “Only the service layer accesses Supabase. The incident service finds the
+    student record and inserts the emergency incident into the database.”
+  </div>
+
+  <h2>5. MVVM Flow During SOS Submission</h2>
+  <div class="flow">
+    Student presses SEND SOS<br>
+    ↓<br>
+    SOS View<br>
+    ↓<br>
+    SOS ViewModel<br>
+    ↓<br>
+    Incident Service<br>
+    ↓<br>
+    Supabase Database
+  </div>
+
+  <h2>6. Session Management</h2>
+  <p>Main files:</p>
+  <ul>
+    <li class="file">lib/features/auth/viewmodels/session_view_model.dart</li>
+    <li class="file">lib/features/auth/views/session_gate.dart</li>
+  </ul>
+  <div class="cue">
+    <strong>Speaking cue:</strong><br>
+    “Session management remembers whether a user is logged in. SessionGate
+    checks the authenticated user’s role. Students see the Student Dashboard,
+    administrators see the SSD interface, and signed-out users see Login.”
+  </div>
+
+  <h2>7. Why MVVM Was Used</h2>
+  <div class="cue">
+    <strong>Speaking cue:</strong><br>
+    “MVVM keeps the user interface separate from screen logic and database
+    operations. This makes SAGIP easier to maintain, test, and expand without
+    placing all responsibilities in one file.”
+  </div>
+
+  <h2>8. If Asked About Current Limitations</h2>
+  <ul>
+    <li>GPS coordinates are not yet captured because GPS is a separate task.</li>
+    <li>Incident History and Student Profile currently have placeholders.</li>
+    <li>SSD Dashboard and notification modules will be developed separately.</li>
+    <li>Email confirmation may be disabled temporarily during development.</li>
+  </ul>
+
+  <div class="cue">
+    <strong>Speaking cue:</strong><br>
+    “The current build demonstrates the working foundation. Remaining
+    modules are separated into Kanban tasks and can be integrated without
+    changing the existing MVVM architecture.”
+  </div>
+
+  <footer>SAGIP — Demo and MVVM Guide</footer>
+</body>
+</html>

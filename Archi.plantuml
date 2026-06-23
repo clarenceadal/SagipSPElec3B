@@ -1,0 +1,54 @@
+@startuml
+
+skinparam componentStyle rectangle
+
+actor Student
+actor "SSD/Admin" as Admin
+
+node "Student Mobile App\n(Flutter)" as StudentApp {
+  component "Login Screen"
+  component "Student Dashboard"
+  component "SOS Screen"
+  component "Profile Screen"
+}
+
+node "Admin Dashboard\n(Web/Mobile)" as AdminApp {
+  component "Admin Login"
+  component "SSD Dashboard"
+  component "Incident Details"
+  component "Broadcast Screen"
+}
+
+cloud "Supabase Backend" as Supabase {
+  database "PostgreSQL Database" as DB
+  component "Authentication Service" as Auth
+  component "Incident Management"
+  component "Broadcast Management"
+}
+
+cloud "Location Services" as Location {
+  component "GPS"
+  component "Map API"
+}
+
+cloud "Notification Service" as Notify {
+  component "Push Notifications"
+}
+
+Student --> StudentApp
+Admin --> AdminApp
+
+StudentApp --> Auth : login/register
+StudentApp --> Supabase : submit SOS report
+StudentApp --> Location : get current location
+StudentApp --> Notify : receive broadcasts
+
+AdminApp --> Auth : admin login
+AdminApp --> Supabase : view/update incidents
+AdminApp --> Supabase : send broadcasts
+Supabase --> Notify : send alerts/broadcasts
+
+Supabase --> DB : store and retrieve data
+Location --> StudentApp : location data
+
+@enduml
