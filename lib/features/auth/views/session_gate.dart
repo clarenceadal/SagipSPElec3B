@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../dashboard/views/dashboard_placeholder_view.dart';
+import '../../admin/views/ssd_dashboard_view.dart';
+import '../../broadcast/services/broadcast_service.dart';
 import '../../dashboard/views/student_dashboard_view.dart';
+import '../../profile/services/student_profile_service.dart';
 import '../../sos/services/incident_service.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
@@ -13,12 +15,16 @@ class SessionGate extends StatelessWidget {
   const SessionGate({
     required this.authService,
     required this.incidentService,
+    required this.studentProfileService,
+    required this.broadcastService,
     required this.viewModel,
     super.key,
   });
 
   final AuthService authService;
   final IncidentService incidentService;
+  final StudentProfileService studentProfileService;
+  final BroadcastService broadcastService;
   final SessionViewModel viewModel;
 
   @override
@@ -33,13 +39,17 @@ class SessionGate extends StatelessWidget {
           SessionStatus.signedOut => LoginView(authService: authService),
           SessionStatus.authenticated =>
             viewModel.user!.role == UserRole.student
-                ? StudentDashboardView(
+                  ? StudentDashboardView(
+                      user: viewModel.user!,
+                      incidentService: incidentService,
+                      studentProfileService: studentProfileService,
+                      broadcastService: broadcastService,
+                      onSignOut: viewModel.signOut,
+                    )
+                : SsdDashboardView(
                     user: viewModel.user!,
                     incidentService: incidentService,
-                    onSignOut: viewModel.signOut,
-                  )
-                : DashboardPlaceholderView(
-                    user: viewModel.user!,
+                    broadcastService: broadcastService,
                     onSignOut: viewModel.signOut,
                   ),
           SessionStatus.passwordRecovery => ResetPasswordView(

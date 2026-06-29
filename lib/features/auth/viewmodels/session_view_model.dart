@@ -15,9 +15,16 @@ enum SessionStatus {
 }
 
 class SessionViewModel extends ChangeNotifier {
-  SessionViewModel(this._authService) {
+  SessionViewModel(
+    this._authService, {
+    bool startsInPasswordRecovery = false,
+  }) {
     _subscription = _authService.authEvents.listen(_handleAuthEvent);
-    refresh();
+    if (startsInPasswordRecovery) {
+      _status = SessionStatus.passwordRecovery;
+    } else {
+      refresh();
+    }
   }
 
   final AuthService _authService;
@@ -60,8 +67,7 @@ class SessionViewModel extends ChangeNotifier {
   }
 
   void completePasswordRecovery() {
-    _status = SessionStatus.authenticated;
-    notifyListeners();
+    refresh();
   }
 
   void _handleAuthEvent(AuthSessionEvent event) {

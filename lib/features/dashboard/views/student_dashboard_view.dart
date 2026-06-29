@@ -1,21 +1,32 @@
 import 'package:flutter/material.dart';
 
 import '../../auth/models/app_user.dart';
+import '../../broadcast/services/broadcast_service.dart';
+import '../../history/viewmodels/incident_history_view_model.dart';
+import '../../history/views/incident_history_view.dart';
+import '../../profile/services/student_profile_service.dart';
+import '../../profile/viewmodels/student_profile_view_model.dart';
+import '../../profile/views/student_profile_view.dart';
 import '../../sos/services/incident_service.dart';
 import '../../sos/viewmodels/sos_view_model.dart';
 import '../../sos/views/sos_view.dart';
+import '../models/dashboard_announcement.dart';
 import '../viewmodels/student_dashboard_view_model.dart';
 
 class StudentDashboardView extends StatefulWidget {
   const StudentDashboardView({
     required this.user,
     required this.incidentService,
+    required this.studentProfileService,
+    required this.broadcastService,
     required this.onSignOut,
     super.key,
   });
 
   final AppUser user;
   final IncidentService incidentService;
+  final StudentProfileService studentProfileService;
+  final BroadcastService broadcastService;
   final Future<void> Function() onSignOut;
 
   @override
@@ -25,15 +36,26 @@ class StudentDashboardView extends StatefulWidget {
 class _StudentDashboardViewState extends State<StudentDashboardView> {
   late final StudentDashboardViewModel _viewModel;
   late final SosViewModel _sosViewModel;
+  late final StudentProfileViewModel _profileViewModel;
+  late final IncidentHistoryViewModel _historyViewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = StudentDashboardViewModel();
+    _viewModel = StudentDashboardViewModel(widget.broadcastService);
     _sosViewModel = SosViewModel(
       incidentService: widget.incidentService,
       profileId: widget.user.id,
     );
+    _historyViewModel = IncidentHistoryViewModel(
+      incidentService: widget.incidentService,
+      profileId: widget.user.id,
+    );
+    _profileViewModel = StudentProfileViewModel(
+      profileService: widget.studentProfileService,
+      profileId: widget.user.id,
+    );
+    _viewModel.loadLatestAnnouncement();
     _sosViewModel.loadEmergencyTypes();
   }
 
@@ -41,6 +63,8 @@ class _StudentDashboardViewState extends State<StudentDashboardView> {
   void dispose() {
     _viewModel.dispose();
     _sosViewModel.dispose();
+    _historyViewModel.dispose();
+    _profileViewModel.dispose();
     super.dispose();
   }
 
@@ -53,36 +77,30 @@ class _StudentDashboardViewState extends State<StudentDashboardView> {
           appBar: _viewModel.selectedTab == StudentDashboardTab.home
               ? _DashboardHeader(
                   fullName: widget.user.fullName,
+                  onRefresh: _refreshCurrentTab,
                   onSignOut: widget.onSignOut,
                 )
               : _SectionHeader(
                   title: _sectionTitle(_viewModel.selectedTab),
                   onBack: () =>
                       _viewModel.selectTab(StudentDashboardTab.home),
+                  onRefresh: _refreshCurrentTab,
+                  onSignOut: widget.onSignOut,
                 ),
-          drawer: _StudentDrawer(
-            fullName: widget.user.fullName,
-            email: widget.user.email,
-            onSignOut: widget.onSignOut,
-          ),
           body: switch (_viewModel.selectedTab) {
             StudentDashboardTab.home => _HomeContent(
               viewModel: _viewModel,
             ),
-            StudentDashboardTab.history => const _PendingModuleView(
-              icon: Icons.history_rounded,
-              title: 'Incident History',
-              message: 'Your submitted incidents will appear here.',
+            StudentDashboardTab.history => IncidentHistoryView(
+              viewModel: _historyViewModel,
             ),
             StudentDashboardTab.sos => SosView(
               viewModel: _sosViewModel,
               onSubmitted: () =>
                   _viewModel.selectTab(StudentDashboardTab.home),
             ),
-            StudentDashboardTab.profile => const _PendingModuleView(
-              icon: Icons.person_outline_rounded,
-              title: 'My Profile',
-              message: 'Your student profile will appear here.',
+            StudentDashboardTab.profile => StudentProfileView(
+              viewModel: _profileViewModel,
             ),
           },
           bottomNavigationBar: _StudentBottomNavigation(
@@ -102,13 +120,33 @@ class _StudentDashboardViewState extends State<StudentDashboardView> {
       StudentDashboardTab.profile => 'My Profile',
     };
   }
+
+  Future<void> _refreshCurrentTab() async {
+    switch (_viewModel.selectedTab) {
+      case StudentDashboardTab.sos:
+        await _sosViewModel.loadEmergencyTypes();
+      case StudentDashboardTab.profile:
+        await _profileViewModel.loadProfile();
+      case StudentDashboardTab.home:
+        await _viewModel.loadLatestAnnouncement();
+      case StudentDashboardTab.history:
+        await _historyViewModel.loadIncidents();
+    }
+  }
 }
 
 class _SectionHeader extends StatelessWidget implements PreferredSizeWidget {
-  const _SectionHeader({required this.title, required this.onBack});
+  const _SectionHeader({
+    required this.title,
+    required this.onBack,
+    required this.onRefresh,
+    required this.onSignOut,
+  });
 
   final String title;
   final VoidCallback onBack;
+  final Future<void> Function() onRefresh;
+  final Future<void> Function() onSignOut;
 
   @override
   Size get preferredSize => const Size.fromHeight(56);
@@ -127,73 +165,18 @@ class _SectionHeader extends StatelessWidget implements PreferredSizeWidget {
         title,
         style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
       ),
-    );
-  }
-}
-
-class _StudentDrawer extends StatelessWidget {
-  const _StudentDrawer({
-    required this.fullName,
-    required this.email,
-    required this.onSignOut,
-  });
-
-  final String fullName;
-  final String email;
-  final Future<void> Function() onSignOut;
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      child: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              color: const Color(0xFF006B2D),
-              padding: const EdgeInsets.all(22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.person_rounded,
-                      color: Color(0xFF006B2D),
-                      size: 36,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    fullName.isEmpty ? 'Student' : fullName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    email,
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
-            const Spacer(),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Sign out'),
-              onTap: () {
-                Navigator.of(context).pop();
-                onSignOut();
-              },
-            ),
-            const SizedBox(height: 12),
-          ],
+      actions: [
+        IconButton(
+          tooltip: 'Refresh',
+          onPressed: onRefresh,
+          icon: const Icon(Icons.refresh_rounded),
         ),
-      ),
+        IconButton(
+          tooltip: 'Sign out',
+          onPressed: onSignOut,
+          icon: const Icon(Icons.logout_rounded),
+        ),
+      ],
     );
   }
 }
@@ -201,12 +184,14 @@ class _StudentDrawer extends StatelessWidget {
 class _DashboardHeader extends StatelessWidget implements PreferredSizeWidget {
   const _DashboardHeader({
     required this.fullName,
+    required this.onRefresh,
     required this.onSignOut,
   });
 
   static const green = Color(0xFF006B2D);
 
   final String fullName;
+  final Future<void> Function() onRefresh;
   final Future<void> Function() onSignOut;
 
   @override
@@ -218,16 +203,8 @@ class _DashboardHeader extends StatelessWidget implements PreferredSizeWidget {
       toolbarHeight: preferredSize.height,
       backgroundColor: green,
       foregroundColor: Colors.white,
-      leading: Builder(
-        builder: (context) {
-          return IconButton(
-            tooltip: 'Menu',
-            onPressed: () => Scaffold.of(context).openDrawer(),
-            icon: const Icon(Icons.menu_rounded, size: 30),
-          );
-        },
-      ),
-      titleSpacing: 4,
+      automaticallyImplyLeading: false,
+      titleSpacing: 16,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -246,33 +223,14 @@ class _DashboardHeader extends StatelessWidget implements PreferredSizeWidget {
       ),
       actions: [
         IconButton(
-          tooltip: 'Notifications',
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Student notifications will be added next.'),
-              ),
-            );
-          },
-          icon: const Icon(Icons.notifications_rounded),
+          tooltip: 'Refresh',
+          onPressed: onRefresh,
+          icon: const Icon(Icons.refresh_rounded),
         ),
-        PopupMenuButton<String>(
-          tooltip: 'Account',
-          onSelected: (value) {
-            if (value == 'sign_out') onSignOut();
-          },
-          itemBuilder: (_) => const [
-            PopupMenuItem(
-              value: 'sign_out',
-              child: Row(
-                children: [
-                  Icon(Icons.logout),
-                  SizedBox(width: 10),
-                  Text('Sign out'),
-                ],
-              ),
-            ),
-          ],
+        IconButton(
+          tooltip: 'Sign out',
+          onPressed: onSignOut,
+          icon: const Icon(Icons.logout_rounded),
         ),
       ],
     );
@@ -289,140 +247,134 @@ class _HomeContent extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
       children: [
-        _DashboardCard(
-          icon: Icons.campaign_outlined,
-          title: 'Announcements',
-          accentColor: const Color(0xFFF2B705),
-          onTap: null,
-          child: viewModel.announcement == null
-              ? const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('No new announcements'),
-                    SizedBox(height: 8),
-                    Text(
-                      'Stay safe!',
-                      style: TextStyle(color: Color(0xFF656B66)),
-                    ),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      viewModel.announcement!.title,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(viewModel.announcement!.message),
-                  ],
-                ),
+        _AnnouncementBoard(
+          announcement: viewModel.announcement,
+          isLoading: viewModel.isLoadingAnnouncement,
+          errorMessage: viewModel.announcementError,
         ),
-        const SizedBox(height: 14),
-        _DashboardCard(
-          icon: Icons.health_and_safety_outlined,
-          title: 'Quick Actions',
-          accentColor: const Color(0xFFF2B705),
-          onTap: viewModel.openSos,
-          child: const Text(
-            'Press the SOS button if you need immediate help.',
-          ),
-        ),
-        const SizedBox(height: 14),
-        _DashboardCard(
-          icon: Icons.history_rounded,
-          title: 'Incident History',
-          accentColor: const Color(0xFFF2B705),
-          outlined: true,
-          onTap: viewModel.openHistory,
-          child: const Text(
-            'View your previous incidents and their current status.',
-          ),
+        const SizedBox(height: 18),
+        const Text(
+          'Use the bottom menu to submit SOS reports, view incident history, or open your profile.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Color(0xFF656B66), height: 1.4),
         ),
       ],
     );
   }
 }
 
-class _DashboardCard extends StatelessWidget {
-  const _DashboardCard({
-    required this.icon,
-    required this.title,
-    required this.accentColor,
-    required this.child,
-    required this.onTap,
-    this.outlined = false,
+class _AnnouncementBoard extends StatelessWidget {
+  const _AnnouncementBoard({
+    required this.announcement,
+    required this.isLoading,
+    required this.errorMessage,
   });
 
-  final IconData icon;
-  final String title;
-  final Color accentColor;
-  final Widget child;
-  final VoidCallback? onTap;
-  final bool outlined;
+  final DashboardAnnouncement? announcement;
+  final bool isLoading;
+  final String? errorMessage;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(
-          color: outlined ? accentColor : const Color(0xFFE0E4E0),
-        ),
+    return Container(
+      constraints: const BoxConstraints(minHeight: 430),
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE0E4E0)),
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.10),
-                  shape: BoxShape.circle,
+      child: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : errorMessage != null
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  size: 72,
+                  color: Color(0xFFB45309),
                 ),
-                child: Icon(icon, color: accentColor, size: 28),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 16),
+                const Text(
+                  'Announcements unavailable',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Color(0xFF656B66), height: 1.4),
+                ),
+              ],
+            )
+          : announcement == null
+          ? const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.campaign_outlined,
+                  size: 76,
+                  color: Color(0xFFB9BFB9),
+                ),
+                SizedBox(height: 18),
+                Text(
+                  'No announcements yet',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Campus-wide announcements from SSD will appear here.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Color(0xFF656B66), height: 1.4),
+                ),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2B705).withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.campaign_outlined,
+                        color: Color(0xFFF2B705),
+                        size: 28,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    DefaultTextStyle(
-                      style: const TextStyle(
-                        color: Color(0xFF343834),
-                        fontSize: 14,
-                        height: 1.35,
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Text(
+                        'Announcement',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                      child: child,
                     ),
                   ],
                 ),
-              ),
-              if (onTap != null) ...[
-                const SizedBox(width: 8),
-                const Padding(
-                  padding: EdgeInsets.only(top: 12),
-                  child: Icon(Icons.chevron_right_rounded),
+                const SizedBox(height: 22),
+                Text(
+                  announcement!.title,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  announcement!.message,
+                  style: const TextStyle(fontSize: 15, height: 1.45),
                 ),
               ],
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }
@@ -566,40 +518,3 @@ class _NavigationItem extends StatelessWidget {
   }
 }
 
-class _PendingModuleView extends StatelessWidget {
-  const _PendingModuleView({
-    required this.icon,
-    required this.title,
-    required this.message,
-  });
-
-  final IconData icon;
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 72, color: const Color(0xFF9AA09B)),
-            const SizedBox(height: 18),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFF656B66)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

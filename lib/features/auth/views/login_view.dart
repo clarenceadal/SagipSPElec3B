@@ -22,7 +22,6 @@ class _LoginViewState extends State<LoginView> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   late final LoginViewModel _viewModel;
-  bool _isAdminPortal = false;
 
   @override
   void initState() {
@@ -67,11 +66,9 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return AuthScaffold(
-      title: _isAdminPortal ? 'SSD Login' : 'Student Login',
-      portalLabel: _isAdminPortal ? 'SSD Portal' : 'Emergency Response System',
-      subtitle: _isAdminPortal
-          ? 'Authorized Safety and Security personnel only.'
-          : 'Sign in to access campus emergency services.',
+      title: 'Login',
+      portalLabel: 'Emergency Response System',
+      subtitle: 'Sign in to access SAGIP.',
       child: ListenableBuilder(
         listenable: _viewModel,
         builder: (context, _) {
@@ -80,27 +77,6 @@ class _LoginViewState extends State<LoginView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SegmentedButton<bool>(
-                  segments: const [
-                    ButtonSegment(
-                      value: false,
-                      icon: Icon(Icons.school_outlined),
-                      label: Text('Student'),
-                    ),
-                    ButtonSegment(
-                      value: true,
-                      icon: Icon(Icons.admin_panel_settings_outlined),
-                      label: Text('SSD Admin'),
-                    ),
-                  ],
-                  selected: {_isAdminPortal},
-                  onSelectionChanged: _viewModel.isLoading
-                      ? null
-                      : (selection) {
-                          setState(() => _isAdminPortal = selection.first);
-                        },
-                ),
-                const SizedBox(height: 22),
                 AuthErrorBanner(message: _viewModel.errorMessage),
                 TextFormField(
                   controller: _emailController,
@@ -155,20 +131,17 @@ class _LoginViewState extends State<LoginView> {
                       : const Text('LOGIN'),
                 ),
                 const SizedBox(height: 12),
-                if (!_isAdminPortal)
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      const Text("Don't have an account?"),
-                      TextButton(
-                        onPressed: _viewModel.isLoading
-                            ? null
-                            : _openRegistration,
-                        child: const Text('Register here'),
-                      ),
-                    ],
-                  ),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    const Text("Don't have an account?"),
+                    TextButton(
+                      onPressed: _viewModel.isLoading ? null : _openRegistration,
+                      child: const Text('Register here'),
+                    ),
+                  ],
+                ),
               ],
             ),
           );
